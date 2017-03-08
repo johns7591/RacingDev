@@ -7,7 +7,7 @@ classdef Model < handle
     
     properties (SetAccess = immutable)
         
-        %Sprung Mass (kg)
+        %Sprung Mass without fuel nor driver (kg).
         Mass@double;
         
     end

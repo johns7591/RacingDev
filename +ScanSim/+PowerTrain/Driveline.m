@@ -38,7 +38,7 @@ classdef Driveline < handle
         %This is the efficiency loss as would be measured at the half
         %shafts.
         Efficiency@double = 1;
-        
+                
     end
     
     properties (Dependent = true)

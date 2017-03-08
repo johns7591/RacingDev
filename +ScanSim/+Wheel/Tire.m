@@ -27,8 +27,9 @@ classdef Tire < handle
         %INERTIA Inertia of the tire (kg/m^2)
         Inertia@double = 0;
         
-        %ROLLINGRESISTANCE Rolling resistance
-        
+        %ROLLINGRESISTANCE Rolling resistance, first order relationship
+        %with Fz.  Unitless (ratio).
+        RollingResistance@double = 0;
         
     end
     

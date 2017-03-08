@@ -34,9 +34,9 @@ classdef Model < handle
         %WHEELINERTIA The moment of inertia of the wheel (kg*m^2)
         WheelInertia@double = 0;
         
-        %HUBLOSS Approximates bearing drag, first order with speed
-        %(lbf*s/m)
-        HubLoss = 0;
+        %HUBLOSS Approximates bearing drag, first order with ang speed
+        %(N*m*s) - loss of torque with speed
+        HubLoss@double = 0;
         
     end
     

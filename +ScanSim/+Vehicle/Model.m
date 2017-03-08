@@ -7,9 +7,6 @@ classdef Model < handle
 
     properties (SetAccess = immutable)
         
-        %WORLD The environment in which the simulation takes place
-        World@ScanSim.World.Model;
-        
         %CHASSIS The chassis model
         Chassis@ScanSim.Chassis.Model;
         
@@ -54,10 +51,9 @@ classdef Model < handle
         
         %% Class Constructor
         
-        function obj = Model(World,Chassis,PowerTrain,Aerodynamics,WheelFL,WheelFR,WheelRL,WheelRR)
+        function obj = Model(Chassis,PowerTrain,Aerodynamics,WheelFL,WheelFR,WheelRL,WheelRR)
         %MODEL The full vehicle model constructor
-            
-            obj.World = World;
+
             obj.Chassis = Chassis;
             obj.PowerTrain = PowerTrain;
             obj.Aerodynamics = Aerodynamics;
@@ -67,7 +63,6 @@ classdef Model < handle
             obj.WheelRR = WheelRR;
             
         end
-        
         
     end
     

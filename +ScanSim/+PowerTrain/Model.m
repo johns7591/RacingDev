@@ -22,8 +22,8 @@ classdef Model < handle
         %will be applied to all gears (1/s)
         SoftLimitSpeeds@double;
         
-        %SOFTLIMITGAINS Gain for torque reduction per increase in engine
-        %speed (N*m*s) <- check out those weird units!
+        %SOFTLIMITGAINS Gain for cut increase per increase in engine
+        %speed (ratio*s) <- check out those weird units!
         SoftLimitGains@double;
         
         %HARDLIMITSPEEDS Speed or speeds at which the hard limit activates.
@@ -31,9 +31,21 @@ classdef Model < handle
         %will be applied to all gears (1/s)
         HardLimitSpeeds@double;
         
-        %HARDLIMITGAINS Gain for torque reduction per increase in engine
-        %speed (N*m*s) <- check out those weird units!
+        %HARDLIMITGAINS Gain for cut increase per increase in engine
+        %speed (ratio*s) <- check out those weird units!
         HardLimitGains@double;
+        
+    end
+    
+    properties
+        
+        %SHIFTCUTDURATION The amount of time for which shifting is cut (s)
+        ShiftCutDuration@double = 0;
+        
+        %SHIFTCUTLEVEL The ratio of torque remaining during a shift (e.g. a
+        %value of 0.2 means that 20% of total torque is available during
+        %shift
+        ShiftCutLevel@double = 1; 
         
     end
 
@@ -111,7 +123,7 @@ classdef Model < handle
             
         end
         
-        function Torque = GetOutputTorque(obj,SpeedArray,ControlArray,Gear)
+        function Torque = GetOutputTorque(obj,SpeedArray,ControlArray,Gear,ActiveCut)
         %GETOUTPUTTORQUE Get torque value from a given engine speed
         %input and control input.  Same as in engine class, but augmented
         %with limiters, ratios, and efficiency
@@ -121,31 +133,39 @@ classdef Model < handle
         %       ControlArray: An array of engine control input, same length
         %       as the speed array.
         %       Gear: What gear are you in
+        %       ActiveCut: Cut level if there is one
         
+            %If no active cut
+            if nargin == 4
+                ActiveCut = 1;
+            end
+            if ActiveCut > 1
+                error('ERROR: Engine cut ratio cannot be > 1');
+            end
+            
             %Basic torque output
             Torque = obj.Engine.GetEngineOutput(SpeedArray,ControlArray,'TorqueMatrix');
             OutputRatios = obj.Driveline.OutputRatios;
             
             %Correct with limiters
+            LimiterCut = zeros(1,length(Torque));
             for i = 1:length(Torque)
                 
-                Cut = 0;
                 if SpeedArray(i) > obj.SoftLimitSpeeds(Gear) && SpeedArray(i) <= obj.HardLimitSpeeds(Gear)
-                    Cut = (SpeedArray(i) - obj.SoftLimitSpeeds(Gear)) * obj.SoftLimitGains(Gear);
+                    LimiterCut(i) = (SpeedArray(i) - obj.SoftLimitSpeeds(Gear)) * obj.SoftLimitGains(Gear);
                 elseif SpeedArray(i) > obj.HardLimitSpeeds(Gear)
                     if ~isnan(obj.SoftLimitSpeeds(Gear))
-                        Cut = (obj.HardLimitSpeeds(Gear) - obj.SoftLimitSpeeds(Gear)) * obj.SoftLimitGains(Gear);
+                        LimiterCut(i) = (obj.HardLimitSpeeds(Gear) - obj.SoftLimitSpeeds(Gear)) * obj.SoftLimitGains(Gear);
                     end       
-                    Cut = Cut + (SpeedArray(i) - obj.HardLimitSpeeds(Gear)) * obj.HardLimitGains(Gear);
+                    LimiterCut(i) = LimiterCut(i) + (SpeedArray(i) - obj.HardLimitSpeeds(Gear)) * obj.HardLimitGains(Gear);
                 end
-                if Cut > Torque(i)
-                    Cut = Torque(i);
+                if LimiterCut(i) > 1
+                    LimiterCut(i) = 1;
                 end
-                Torque(i) = Torque(i) - Cut;
                                 
             end
             
-            Torque = Torque .* OutputRatios(Gear) .* obj.Driveline.Efficiency;
+            Torque = Torque .* OutputRatios(Gear) .* obj.Driveline.Efficiency .* ActiveCut .* (1-LimiterCut);
         
         end
         
