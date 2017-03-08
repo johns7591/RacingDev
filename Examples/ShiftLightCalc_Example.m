@@ -1,3 +1,7 @@
+%% Shift Light Calculation - Example File
+%
+%J.Scanlon 170308
+
 %% User Entry For Shift Lights
 
 % Delay array - the delay from each light to the next.  The last value is
