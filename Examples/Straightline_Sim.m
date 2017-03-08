@@ -1,6 +1,13 @@
-%% User Entry For Simulation
+%% User Entry For Shift Lights
 
-%% Setup
+% Delay array - the delay from each light to the next.  The last value is
+% the delay to the shift itself.  Number of values in DelayArray is equal
+% to number of lights.
+
+DelayArray = [0.2 0.2 0.2 0.3];
+
+
+%% Basic Setup
 % Enter parameters for the sim here.  Note that EVERYTHING IS IN SI UNITS!
 % I know, it's terrible.  But it makes the math so much easier.
 
@@ -25,6 +32,7 @@ Temperature = 293.15; %K
 Pressure    = 1e5; %Pa
 Humidity    = 0.6; %RH
 
+
 %% Vehicle Properties
 % These are things that may change less frequently throughout the weekend.
 % Not to say they won't change, but just not as often.  EVERYTHING IS STILL
@@ -36,6 +44,7 @@ Humidity    = 0.6; %RH
 %   please include all unsprung mass in the wheel mass.  Note that the way
 %   I have this set up, you're only entering values for ONE WHEEL.  They
 %   are then mirrored right to left because the car's probably symmetrical.
+%   Rolling resistance is not coded yet.
 
 FrontEffectiveRadius = 0.325; %m
 FrontLoadedRadius    = 0.318; %m
@@ -95,7 +104,7 @@ SCz  = 0;
 Abal = 0.4;
 
 
-%% Model Generation
+%% Model Generation - Don't touch!
 
 %Powertrain
 Driveline = ScanSim.PowerTrain.Driveline(GearRatios,FinalDrive);
@@ -143,11 +152,8 @@ Chassis = ScanSim.Chassis.Model(SprungMass);
 %Full Vehicle
 VehicleModel = ScanSim.Vehicle.Model(Chassis,PowerTrain,Aero,WheelF,WheelF,WheelR,WheelR);
 
-%% Solver Setup
+
+%% Solver - Don't touch!
 
 Solver = ScanSim.Solver.StraightLine(VehicleModel,World,10,0.01);
-
-%% Solve!
-
-Result = Solver.Solve;
-
+Solver.ShiftLightCalculator(DelayArray);

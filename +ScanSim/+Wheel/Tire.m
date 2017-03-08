@@ -55,6 +55,14 @@ classdef Tire < handle
         
         end
         
+        function RollingResistance = GetRollingResistance(obj,Fz)
+        %GETROLLINGRESISTANCE Get rolling resistance as a function of
+        %vertical load
+        
+            RollingResistance = obj.RollingResistance * Fz;
+        
+        end
+        
     end
     
 end

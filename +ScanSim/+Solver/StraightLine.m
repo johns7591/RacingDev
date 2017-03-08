@@ -72,7 +72,13 @@ classdef StraightLine < ScanSim.Solver.Base
                 Result.Downforce(i) = Result.DynPres(i) * Result.SCz(i);             
                 
                 % Vertical loads
+                % Not yet coded
                 
+                % Rolling resistance (zero for now)
+                Result.RollingResistanceFL(i) = obj.Vehicle.WheelFL.Tire.GetRollingResistance(0);
+                Result.RollingResistanceFR(i) = obj.Vehicle.WheelFR.Tire.GetRollingResistance(0);
+                Result.RollingResistanceRL(i) = obj.Vehicle.WheelRL.Tire.GetRollingResistance(0);
+                Result.RollingResistanceRR(i) = obj.Vehicle.WheelRR.Tire.GetRollingResistance(0);
                 
                 % Tire Radii - ultimately these will be based on Fz
                 [Result.LoadedRadiusFL(i),Result.EffectiveRadiusFL(i)] = obj.Vehicle.WheelFL.Tire.GetRadii;
@@ -147,6 +153,10 @@ classdef StraightLine < ScanSim.Solver.Base
                                  + Result.TireFxFR(i)...
                                  + Result.TireFxRL(i)...
                                  + Result.TireFxRR(i)...
+                                 - Result.RollingResistanceFL(i)...
+                                 - Result.RollingResistanceFR(i)...
+                                 - Result.RollingResistanceRL(i)...
+                                 - Result.RollingResistanceRR(i)...
                                  - Result.Drag(i);
                 
                 Result.BodyAx(i) = Result.BodyFx(i) / (obj.Vehicle.Mass + InertiaFront_Linear + InertiaRear_Linear);
@@ -175,6 +185,79 @@ classdef StraightLine < ScanSim.Solver.Base
             end
             
             disp(['Solve completed in ' num2str(toc) ' seconds']);
+            
+        end
+        
+        %% Other tools
+        
+        function Lights = ShiftLightCalculator(obj,DelayArray)
+        %SHIFTLIGHTCALCULATOR Calculate shift lights with a relatively
+        %constant time delay between eachother, and the shift point.
+        %
+        % Inputs:
+        %       Delay array - the delay from each light to the next.  The
+        %       last value is the delay to the shift itself.  Number of
+        %       values in DelayArray is equal to number of lights.
+            
+            %Simulate
+            Result = obj.Solve;
+                        
+            %Get number of gears
+            NumGears = obj.Vehicle.PowerTrain.Driveline.GearCount;
+            
+            % Calculate lights for each gear
+            Lights = nan(NumGears-1,length(DelayArray)+1);
+            RowTitles = cell(1,NumGears-1);
+            ColTitles = cell(1,length(DelayArray)+1);
+            ColTitles{end} = 'ShiftPoint';
+            for i = 1:NumGears-1
+                
+                % Time and engine speed for this gear
+                timeInThisGear = Result.Time(Result.Gear == i);
+                timeInNextGear = Result.Time(Result.Gear == i+1);
+                if isempty(timeInNextGear)
+                    warning(['Gear ' num2str(i+1) ' was unused, thus gear ' num2str(i) ' will not have shift light results.  Maybe the gearing is way off.']);
+                    continue;
+                end
+                timeInThisGear = timeInThisGear - timeInThisGear(1);                
+                engineSpeedData = Result.EngineSpeed(Result.Gear == i);
+                
+                % Title
+                RowTitles{i} = ['Shift ' num2str(i) '-' num2str(i+1)];
+                
+                % Individual lights
+                for j = 1:length(DelayArray)
+                    
+                    % Time till shift
+                    timeToShift = sum(DelayArray(j:end));
+                    
+                    % Title
+                    if i == 1                       
+                        ColTitles{j} = ['Light ' num2str(j) ' @ T-' num2str(timeToShift) 's'];                
+                    end
+
+                    % Are we out of useful range?
+                    if timeToShift > timeInThisGear(end)
+                        warning(['Light ' num2str(j) ' for gear ' num2str(i) ' will occur before this gear, and will not have shift light results.  Perhaps your delays are way too long.']);
+                        continue;
+                    end
+                    
+                    % Set it
+                    Lights(i,j) = interp1(timeInThisGear,engineSpeedData,timeInThisGear(end)-timeToShift);
+                    
+                end
+                
+                Lights(i,end) = engineSpeedData(end);
+                
+            end            
+            
+            % If no outputs requested, a plot appears!
+            if nargout == 0
+                figure('Position',[100 100 600 150],'Name','Shift Lights in RPM');
+                uitable('Units','normalized','Position',...
+                        [0.1 0.1 0.9 0.9],'Data',round(Lights.*60),'ColumnName',ColTitles,... 
+                        'RowName',RowTitles);                
+            end
             
         end
         
